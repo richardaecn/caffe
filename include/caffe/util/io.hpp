@@ -89,12 +89,25 @@ inline void WriteProtoToBinaryFile(
   WriteProtoToBinaryFile(proto, filename.c_str());
 }
 
+bool ReadImagePairToDatum(const string& filename_1, const string& filename_2, 
+  const int label, const int height, const int width, const bool is_color, Datum* datum);
+
 bool ReadImageToDatum(const string& filename, const int label,
     const int height, const int width, const bool is_color, Datum* datum);
+
+inline bool ReadImagePairToDatum(const string& filename_1, const string& filename_2, 
+  const int label, const int height, const int width, Datum* datum) {
+  return ReadImagePairToDatum(filename_1, filename_2, label, height, width, true, datum);
+}
 
 inline bool ReadImageToDatum(const string& filename, const int label,
     const int height, const int width, Datum* datum) {
   return ReadImageToDatum(filename, label, height, width, true, datum);
+}
+
+inline bool ReadImagePairToDatum(const string& filename_1, const string& filename_2, 
+  const int label, Datum* datum) {
+  return ReadImagePairToDatum(filename_1, filename_2, label, 0, 0, datum);
 }
 
 inline bool ReadImageToDatum(const string& filename, const int label,

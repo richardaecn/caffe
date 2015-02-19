@@ -66,6 +66,68 @@ void WriteProtoToBinaryFile(const Message& proto, const char* filename) {
   CHECK(proto.SerializeToOstream(&output));
 }
 
+bool ReadImagePairToDatum(const string& filename_1, const string& filename_2, const int label,
+    const int height, const int width, const bool is_color, Datum* datum) {
+  cv::Mat cv_img_1, cv_img_2;
+  int cv_read_flag = (is_color ? CV_LOAD_IMAGE_COLOR :
+    CV_LOAD_IMAGE_GRAYSCALE);
+
+  cv::Mat cv_img_origin_1 = cv::imread(filename_1, cv_read_flag);
+  cv::Mat cv_img_origin_2 = cv::imread(filename_2, cv_read_flag);
+  if (!cv_img_origin_1.data || !cv_img_origin_2.data) {
+    LOG(ERROR) << "Could not open or find file " << filename_1 << " or " << filename_2;
+    return false;
+  }
+  if (height > 0 && width > 0) {
+    cv::resize(cv_img_origin_1, cv_img_1, cv::Size(width, height));
+    cv::resize(cv_img_origin_2, cv_img_2, cv::Size(width, height));
+  } else {
+    cv_img_1 = cv_img_origin_1;
+    cv_img_2 = cv_img_origin_2;
+  }
+
+  int num_channels = (is_color ? 3 : 1);
+  datum->set_channels(num_channels * 2);
+  datum->set_height(cv_img_1.rows);
+  datum->set_width(cv_img_1.cols);
+  datum->set_label(label);
+  datum->clear_data();
+  datum->clear_float_data();
+  string* datum_string = datum->mutable_data();
+  if (is_color) {
+    for (int c = 0; c < num_channels; ++c) {
+      for (int h = 0; h < cv_img_1.rows; ++h) {
+        for (int w = 0; w < cv_img_1.cols; ++w) {
+          datum_string->push_back(
+            static_cast<char>(cv_img_1.at<cv::Vec3b>(h, w)[c]));
+        }
+      }
+    }
+    for (int c = 0; c < num_channels; ++c) {
+      for (int h = 0; h < cv_img_2.rows; ++h) {
+        for (int w = 0; w < cv_img_2.cols; ++w) {
+          datum_string->push_back(
+            static_cast<char>(cv_img_2.at<cv::Vec3b>(h, w)[c]));
+        }
+      }
+    }
+  } else {  // Faster than repeatedly testing is_color for each pixel w/i loop
+    for (int h = 0; h < cv_img_1.rows; ++h) {
+      for (int w = 0; w < cv_img_1.cols; ++w) {
+        datum_string->push_back(
+          static_cast<char>(cv_img_1.at<uchar>(h, w)));
+        }
+      }
+    for (int h = 0; h < cv_img_2.rows; ++h) {
+      for (int w = 0; w < cv_img_2.cols; ++w) {
+        datum_string->push_back(
+          static_cast<char>(cv_img_2.at<uchar>(h, w)));
+        }
+      }
+  }
+  return true;
+}
+
 bool ReadImageToDatum(const string& filename, const int label,
     const int height, const int width, const bool is_color, Datum* datum) {
   cv::Mat cv_img;
